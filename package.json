@@ -1,0 +1,8 @@
+{
+  "name": "unova-tea",
+  "version": "1.0.0",
+  "description": "Unova Tea wholesale ordering portal",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  }
+}
