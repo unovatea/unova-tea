@@ -711,7 +711,7 @@ async function submitToStripe() {
   });
 
   try {
-    const res = await fetch('/.netlify/functions/create-checkout', {
+    const res = await fetch('/api/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -756,10 +756,9 @@ function contactForFlavor() {
 }
 
 // ── INIT ──
-loadPlan('growth', document.querySelector('.plan-btn.active'));
-<script src="https://js.stripe.com/v3/"></script>
-  <script>
- const stripe = Stripe("pk_live_51QW5JKFKl2J3RctEZpytr6podhXRt3ZIVXEF3kDA932UZ0u8NuYSSnfbpjNvsAMYSvIl3Usetxf1tYxqfTIyo2NS00gxptVyGE");
+document.addEventListener('DOMContentLoaded', () => {
+  loadPlan('growth', document.querySelector('.plan-btn.active'));
+});
 </script>
-  </body>
+</body>
 </html>
