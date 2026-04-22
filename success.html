@@ -1,95 +1,39 @@
-// netlify/functions/create-checkout.js
-// This runs on Netlify's servers — your Stripe secret key never touches the browser.
-
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-exports.handler = async (event) => {
-  // Only allow POST
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
-  let body;
-  try {
-    body = JSON.parse(event.body);
-  } catch {
-    return { statusCode: 400, body: 'Invalid JSON' };
-  }
-
-  const { items, customerEmail, customerName, businessName, phone, shipping } = body;
-
-  // Validate minimum order
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
-  if (subtotal < 100) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'Minimum order of $100 not met.' }),
-    };
-  }
-
-  // Build Stripe line items from the order
-  // Each item: { name, price (in dollars), qty, description }
-  const lineItems = items.map((item) => ({
-    price_data: {
-      currency: 'usd',
-      unit_amount: Math.round(item.price * 100), // Stripe uses cents
-      recurring: { interval: 'month' },
-      product_data: {
-        name: item.name,
-        description: item.description,
-      },
-    },
-    quantity: 1,
-  }));
-
-  // Add shipping as a line item if applicable
-  if (shipping > 0) {
-    lineItems.push({
-      price_data: {
-        currency: 'usd',
-        unit_amount: Math.round(shipping * 100),
-        recurring: { interval: 'month' },
-        product_data: {
-          name: 'Monthly Delivery',
-          description: 'Standard shipping fee',
-        },
-      },
-      quantity: 1,
-    });
-  }
-
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      customer_email: customerEmail,
-      metadata: {
-        business_name: businessName,
-        customer_name: customerName,
-        phone: phone || '',
-      },
-      subscription_data: {
-        metadata: {
-          business_name: businessName,
-          source: 'unova-tea-portal',
-        },
-      },
-      success_url: `${process.env.URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.URL}/`,
-      billing_address_collection: 'required',
-      phone_number_collection: { enabled: true },
-    });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ url: session.url }),
-    };
-  } catch (err) {
-    console.error('Stripe error:', err.message);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
-  }
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Confirmed · Unova Tea × Aulo Spa</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root { --blue:#1C2B4D; --moss:#4B5E47; --amber:#A57820; --mint:#96B89E; --egg:#F1E8D6; --white:#fff; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--egg); font-family:'DM Sans',sans-serif; color:var(--blue); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; }
+.card { background:var(--white); border-radius:20px; padding:48px 40px; max-width:480px; width:100%; text-align:center; box-shadow:0 8px 48px rgba(28,43,77,0.12); }
+.icon { font-size:56px; margin-bottom:20px; }
+h1 { font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:700; color:var(--blue); margin-bottom:10px; }
+.sub { font-size:14px; color:#666; line-height:1.7; margin-bottom:28px; }
+.detail-box { background:var(--egg); border-radius:12px; padding:18px; text-align:left; font-size:13px; color:var(--blue); line-height:1.9; margin-bottom:28px; }
+.detail-box strong { display:block; margin-bottom:4px; font-size:14px; }
+.back-btn { display:inline-block; padding:12px 28px; background:var(--blue); color:var(--egg); border-radius:8px; text-decoration:none; font-weight:700; font-size:14px; transition:background .2s; }
+.back-btn:hover { background:#2a3f6f; }
+.brand { margin-top:32px; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--mint); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">🌿</div>
+  <h1>You're all set, Aulo Spa!</h1>
+  <p class="sub">Your monthly tea subscription is confirmed. We'll reach out within 24 hours to finalize your first delivery. Welcome to the Unova Tea family!</p>
+  <div class="detail-box">
+    <strong>What happens next:</strong>
+    ✦ Confirmation email sent to your inbox<br>
+    ✦ First delivery within 3–5 business days<br>
+    ✦ Questions? Email unovatea@gmail.com<br>
+    ✦ Manage your subscription anytime via Stripe
+  </div>
+  <a href="/" class="back-btn">← Back to Order Page</a>
+  <div class="brand">Unova Tea · Wholesale Program</div>
+</div>
+</body>
+</html>
